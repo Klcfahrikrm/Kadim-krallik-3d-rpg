@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Quest – 3D RPG</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800;900&family=MedievalSharp&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+    </div>
+
+    <!-- ===== HUD ===== -->
+    <div id="hud">
+        <!-- Player Info Panel -->
+        <div id="player-info">
+            <div id="player-name">Hero <span id="player-class-badge">[Savaşçı]</span> <span id="player-level">Lv. 1</span></div>
+            <div class="bar-container">
+                <div class="bar-label">HP</div>
+                <div class="bar-bg hp-bg">
+                    <div class="bar-fill hp-fill" id="hp-bar"></div>
+                    <span class="bar-text" id="hp-text">100 / 100</span>
+                </div>
+            </div>
+            <div class="bar-container">
+                <div class="bar-label">EXP</div>
+                <div class="bar-bg exp-bg">
+                    <div class="bar-fill exp-fill" id="exp-bar"></div>
+                    <span class="bar-text" id="exp-text">0 / 100</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Minimap Radar -->
+        <div id="minimap-container">
+            <div id="minimap-frame">
+                <canvas id="minimap-canvas" width="130" height="130"></canvas>
+                <div id="minimap-compass-n">K</div>
+            </div>
+            <div id="minimap-label">Köy & Çayır</div>
+        </div>
+
+        <!-- Boss Health Bar (Top Center) -->
+        <div id="boss-bar-container" class="hidden">
+            <div id="boss-title-bar">
+                <span class="boss-skull">💀</span>
+                <span id="boss-name">UR-GATHOK — KADİM ORMAN LORDU</span>
+                <span class="boss-tag">[BOSS]</span>
+            </div>
+            <div class="boss-hp-frame">
+                <div class="boss-hp-fill" id="boss-hp-fill"></div>
+                <div class="boss-hp-text" id="boss-hp-text">1000 / 1000</div>
+            </div>
+        </div>
+
+        <!-- Target Info Panel -->
+        <div id="target-info" class="hidden">
+            <div id="target-name">Monster</div>
+            <div class="bar-container">
+                <div class="bar-bg hp-bg">
+                    <div class="bar-fill target-hp-fill" id="target-hp-bar"></div>
+                    <span class="bar-text" id="target-hp-text">100 / 100</span>
+                </div>
+            </div>
+            <div id="target-level"></div>
+        </div>
+
+        <!-- Controls Guide (Bottom Left) -->
+        <div id="controls-guide">
+            <div class="guide-title">⚜️ KONTROLLER</div>
+            <div class="guide-row"><span class="kbadge">WASD</span><span>Yürü</span><span class="kbadge">Shift</span><span>Koş</span><span class="kbadge">Boşluk</span><span>Zıpla</span></div>
+            <div class="guide-row"><span class="kbadge">Sol Tık</span><span>Saldır</span><span class="kbadge">Sağ Tık</span><span>Kamera</span></div>
+            <div class="guide-row"><span class="kbadge">2 / Q</span><span>Element</span><span class="kbadge">R</span><span>Kadim Ulti</span></div>
+            <div class="guide-row"><span class="kbadge">C</span><span>Nitelikler</span><span class="kbadge">I</span><span>Envanter</span><span class="kbadge">1</span><span>İksir</span></div>
+        </div>
+
+        <!-- Action Bar -->
+        <div id="action-bar">
+            <div class="action-slot" id="slot-attack" title="Temel Saldırı (Sol Tık)">
+                <span id="attack-icon">⚔️</span>
+                <span class="slot-key">Sol Tık</span>
+            </div>
+            <div class="action-slot" id="slot-skill" title="Element Patlaması (Tuş: 2 veya Q)">
+                <span id="skill-icon">🔥</span>
+                <span class="slot-key">2 / Q</span>
+                <div class="cooldown-overlay hidden" id="skill-cd-overlay">
+                    <span id="skill-cd-text">3.5</span>
+                </div>
+            </div>
+            <div class="action-slot" id="slot-ult" title="Kadim Ulti Yeteneği (Tuş: R)">
+                <span id="ult-icon">⚡</span>
+                <span class="slot-key">R</span>
+                <div class="cooldown-overlay hidden" id="ult-cd-overlay">
+                    <span id="ult-cd-text">12.0</span>
+                </div>
+            </div>
+            <div class="action-slot" id="slot-potion" title="Can İksiri (Tuş: 1)">
+                <span>🧪</span>
+                <span class="slot-key">1</span>
+                <span class="slot-count" id="potion-count">2</span>
+            </div>
+        </div>
+
+        <!-- Quick Toggles (Bottom Right) -->
+        <div id="quick-toggles">
+            <div id="stats-toggle" title="Nitelik Dağıtımı (C)">
+                ⚜️
+                <span id="stat-badge" class="hidden">0</span>
+            </div>
+            <div id="inventory-toggle" title="Envanter (I)">🎒</div>
+        </div>
+
+        <!-- Character Stats Sheet -->
+        <div id="stats-panel" class="hidden">
+            <div id="stats-header">
+                <span>⚜️ Kahraman Nitelikleri</span>
+                <button id="stats-close">✕</button>
+            </div>
+            <div id="stats-body">
+                <div id="stats-hero-banner">
+                    <div id="stat-hero-name">Savaşçı [Ateş]</div>
+                    <div id="stat-hero-level">Seviye 1</div>
+                    <div id="stat-points-avail">Dağıtılabilir Puan: <b id="stat-points-val">0</b></div>
+                </div>
+                <div class="stat-dist-list">
+                    <div class="stat-dist-row">
+                        <div class="stat-icon-name">🔴 <b>GÜÇ (STR)</b></div>
+                        <div class="stat-current" id="val-str">10</div>
+                        <button class="stat-add-btn disabled" data-stat="str" title="+1 Puan Dağıt">+</button>
+                        <div class="stat-effect">Fiziksel vuruş gücü ve zırh</div>
+                    </div>
+                    <div class="stat-dist-row">
+                        <div class="stat-icon-name">🔵 <b>ZEKA (INT)</b></div>
+                        <div class="stat-current" id="val-int">10</div>
+                        <button class="stat-add-btn disabled" data-stat="int" title="+1 Puan Dağıt">+</button>
+                        <div class="stat-effect">Büyü hasarı ve yetenek gücü</div>
+                    </div>
+                    <div class="stat-dist-row">
+                        <div class="stat-icon-name">🟢 <b>ÇEVİKLİK (DEX)</b></div>
+                        <div class="stat-current" id="val-dex">10</div>
+                        <button class="stat-add-btn disabled" data-stat="dex" title="+1 Puan Dağıt">+</button>
+                        <div class="stat-effect">Ok hasarı, kritik şansı ve hız</div>
+                    </div>
+                    <div class="stat-dist-row">
+                        <div class="stat-icon-name">🟡 <b>CANLILIK (VIT)</b></div>
+                        <div class="stat-current" id="val-vit">10</div>
+                        <button class="stat-add-btn disabled" data-stat="vit" title="+1 Puan Dağıt">+</button>
+                        <div class="stat-effect">Maksimum can ve dayanıklılık</div>
+                    </div>
+                </div>
+                <div class="stats-derived-box">
+                    <div class="derived-item"><span>Maksimum Can:</span> <b id="derived-hp">120</b></div>
+                    <div class="derived-item"><span>Saldırı Gücü:</span> <b id="derived-atk">16</b></div>
+                    <div class="derived-item"><span>Savunma:</span> <b id="derived-def">2</b></div>
+                    <div class="derived-item"><span>Kritik Şansı:</span> <b id="derived-crit">%18</b></div>
+                    <div class="derived-item"><span>Koşu Hızı:</span> <b id="derived-spd">Normal</b></div>
+                    <div class="derived-item"><span>Yetenek Gücü:</span> <b id="derived-skill">x1.00</b></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Panel -->
+        <div id="inventory-panel" class="hidden">
+            <div id="inventory-header">
+                <span>Envanter</span>
+                <button id="inventory-close">✕</button>
+            </div>
+            <div id="inventory-grid"></div>
+        </div>
+
+        <!-- Notification Area -->
+        <div id="notifications"></div>
+
+        <!-- Biome Discovery Banner -->
+        <div id="biome-banner" class="hidden"></div>
+
+        <!-- Level Up Overlay -->
+        <div id="level-up-overlay" class="hidden">
+            <div id="level-up-text">LEVEL UP!</div>
+        </div>
+
+        <!-- Death Screen (Permadeath / Restart) -->
+        <div id="death-screen" class="hidden">
+            <div id="death-content">
+                <div id="death-title">RUHUN BEDENİ TERK ETTİ</div>
+                <div id="death-subtitle">Karanlık güçler seni mağlup etti. Yolculuk en başa döndü…</div>
+                <div id="death-stats-box">
+                    <div class="d-stat">Ulaşılan Seviye: <b id="death-level">1</b></div>
+                    <div class="d-stat">Avlanan Canavar: <b id="death-kills">0</b></div>
+                </div>
+                <div class="death-buttons">
+                    <button id="respawn-btn">⚔️ Baştan Başla (Seviye 1)</button>
+                    <button id="restart-select-btn">⚜️ Yeni Kahraman Seç</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Start / Character Creation Screen -->
+        <div id="instructions">
+            <div id="creation-modal">
+                <div id="modal-header">
+                    <div id="instructions-title">⚔️ FANTASY QUEST ⚔️</div>
+                    <div id="instructions-subtitle">Kaderini Mühürleyecek Kahramanı Seç</div>
+                </div>
+
+                <!-- Saved Game Resume Box -->
+                <div id="continue-save-box" class="hidden">
+                    <div class="save-box-header">
+                        <span class="save-icon">💾</span>
+                        <div class="save-box-title">Kayıtlı Kahraman Bulundu!</div>
+                    </div>
+                    <div class="save-box-desc" id="save-box-desc">
+                        Seviye 1 Savaşçı [Ateş] • 🪙 0 Altın • 🎒 1 Eşya
+                    </div>
+                    <div class="save-box-actions">
+                        <button type="button" id="continue-adventure-btn" class="wizard-btn save-continue-btn">
+                            ⚔️ Maceraya Devam Et
+                        </button>
+                        <button type="button" id="reset-save-btn" class="wizard-btn save-reset-btn">
+                            ⚜️ Yeni Oyun (Kaydı Sıfırla)
+                        </button>
+                    </div>
+                </div>
+
+                <div id="creation-body">
+                    <!-- Left: 3D Character Preview Showcase -->
+                    <div id="preview-col">
+                        <div id="preview-box">
+                            <canvas id="preview-canvas" width="280" height="320"></canvas>
+                            <div id="preview-hint">🖱️ Çevirmek için sürükle</div>
+                            <div id="preview-element-badge" class="badge-fire hidden">🔥 Ateş Muhafızı</div>
+                        </div>
+                        <div id="preview-hero-title">Savaşçı</div>
+                        <div id="preview-hero-subtitle">Çelik Kılıç & Kalkan Ustası</div>
+                        <div id="preview-stats">
+                            <div class="stat-row">
+                                <span class="stat-name">Can (HP)</span>
+                                <div class="stat-track"><div class="stat-val" id="stat-hp" style="width: 85%;"></div></div>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-name">Saldırı</span>
+                                <div class="stat-track"><div class="stat-val" id="stat-atk" style="width: 80%;"></div></div>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-name">Savunma</span>
+                                <div class="stat-track"><div class="stat-val" id="stat-def" style="width: 75%;"></div></div>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-name">Hız / Kritik</span>
+                                <div class="stat-track"><div class="stat-val" id="stat-spd" style="width: 50%;"></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Selection Panels -->
+                    <div id="wizard-col">
+                        <!-- Step 1: Class Selection (Initially only this is visible!) -->
+                        <div id="step-1-content" class="wizard-step">
+                            <div class="section-title">Kahraman Sınıfını Belirle</div>
+                            <div class="options-grid" id="class-options">
+                                <div class="option-card selected" data-class="warrior">
+                                    <div class="card-icon">⚔️</div>
+                                    <div class="card-title">Savaşçı</div>
+                                    <div class="card-weapon">Silah: <b>Kılıç & Kalkan</b></div>
+                                    <div class="card-type">⚔️ Yakın Dövüş</div>
+                                    <div class="card-desc">+20 Maks HP & Sağlam Çelik Zırh</div>
+                                </div>
+                                <div class="option-card" data-class="mage">
+                                    <div class="card-icon">🪄</div>
+                                    <div class="card-title">Büyücü</div>
+                                    <div class="card-weapon">Silah: <b>Kristal Asa</b></div>
+                                    <div class="card-type">✨ Menzilli Büyü</div>
+                                    <div class="card-desc">+40% Büyü Gücü & Hızlı Dolum</div>
+                                </div>
+                                <div class="option-card" data-class="archer">
+                                    <div class="card-icon">🏹</div>
+                                    <div class="card-title">Okçu</div>
+                                    <div class="card-weapon">Silah: <b>Avcı Yayı</b></div>
+                                    <div class="card-type">🎯 Menzilli Ok</div>
+                                    <div class="card-desc">+18% Koşu Hızı & Yüksek Kritik</div>
+                                </div>
+                            </div>
+                            <div class="step-nav">
+                                <button type="button" id="next-to-element-btn" class="wizard-btn primary-btn">
+                                    Bu Kahramanı Seç ⚜️
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Mystical Element Reveal (Completely hidden until class is chosen!) -->
+                        <div id="step-2-content" class="wizard-step hidden">
+                            <div class="section-title">Kadim Ruhunu Hangi Element Mühürleyecek?</div>
+                            <div class="options-grid elements-grid" id="element-options">
+                                <div class="option-card selected element-card fire" data-element="fire">
+                                    <div class="card-icon">🔥</div>
+                                    <div class="card-title">Ateş</div>
+                                    <div class="card-desc">Yakıcı Alev Gücü</div>
+                                </div>
+                                <div class="option-card element-card water" data-element="water">
+                                    <div class="card-icon">💧</div>
+                                    <div class="card-title">Su</div>
+                                    <div class="card-desc">Buz & Dalga Gücü</div>
+                                </div>
+                                <div class="option-card element-card earth" data-element="earth">
+                                    <div class="card-icon">🌿</div>
+                                    <div class="card-title">Toprak</div>
+                                    <div class="card-desc">Kadim Doğa Gücü</div>
+                                </div>
+                                <div class="option-card element-card air" data-element="air">
+                                    <div class="card-icon">💨</div>
+                                    <div class="card-title">Hava</div>
+                                    <div class="card-desc">Fırtına & Rüzgar Gücü</div>
+                                </div>
+                            </div>
+                            <div class="step-nav">
+                                <button type="button" id="back-to-class-btn" class="wizard-btn secondary-btn">
+                                    ❮ Sınıf Değiştir
+                                </button>
+                                <button type="button" id="start-btn" class="wizard-btn start-glow-btn">
+                                    Maceraya Başla ⚔️
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Controls Guide -->
+                        <div id="controls-summary">
+                            <span><b>WASD</b>: Hareket</span> • 
+                            <span><b>Sağ Tık + Sürükle</b>: Kamera</span> • 
+                            <span><b>Sol Tık</b>: Saldırı (İmleç Yönüne)</span><br>
+                            <span><b>2 / Q</b>: Elementel Sınıf Yeteneği (İmleç Yönüne)</span> • 
+                            <span><b>1</b>: Can İksiri</span> • 
+                            <span><b>I</b>: Envanter</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="postprocessing.js"></script>
+    <script src="audio.js"></script>
+    <script src="world.js"></script>
+    <script src="models.js"></script>
+    <script src="entities.js"></script>
+    <script src="ui.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
